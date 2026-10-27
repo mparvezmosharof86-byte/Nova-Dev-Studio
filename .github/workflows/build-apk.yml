@@ -33,13 +33,16 @@ jobs:
 
     - name: Scaffold Nova Dev Studio Project
       run: |
-        mkdir -p app/src/main/java/com/novastudio24/devstudio
-        mkdir -p app/src/main/res/layout
-        mkdir -p app/src/main/assets/editor
+        python3 - << 'PYEOF'
+        import os
 
-        # 1. Settings Gradle
-        cat << 'EOF' > settings.gradle
-        pluginManagement {
+        os.makedirs("app/src/main/java/com/novastudio24/devstudio", exist_ok=True)
+        os.makedirs("app/src/main/res/layout", exist_ok=True)
+        os.makedirs("app/src/main/assets/editor", exist_ok=True)
+
+        # 1. settings.gradle
+        with open("settings.gradle", "w") as f:
+            f.write('''pluginManagement {
             repositories {
                 google()
                 mavenCentral()
@@ -55,18 +58,18 @@ jobs:
         }
         rootProject.name = "Nova Dev Studio"
         include ':app'
-        EOF
+        ''')
 
-        # 2. Root build.gradle
-        cat << 'EOF' > build.gradle
-        plugins {
+        # 2. root build.gradle
+        with open("build.gradle", "w") as f:
+            f.write('''plugins {
             id 'com.android.application' version '8.2.2' apply false
         }
-        EOF
+        ''')
 
-        # 3. App build.gradle
-        cat << 'EOF' > app/build.gradle
-        plugins {
+        # 3. app/build.gradle
+        with open("app/build.gradle", "w") as f:
+            f.write('''plugins {
             id 'com.android.application'
         }
 
@@ -78,8 +81,8 @@ jobs:
                 applicationId "com.novastudio24.devstudio"
                 minSdk 24
                 targetSdk 34
-                versionCode 1
-                versionName "1.0.0"
+                versionCode 2
+                versionName "1.0.1"
             }
 
             buildTypes {
@@ -99,11 +102,11 @@ jobs:
         dependencies {
             // Pure Native Android
         }
-        EOF
+        ''')
 
         # 4. AndroidManifest.xml
-        cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <?xml version="1.0" encoding="utf-8"?>
+        with open("app/src/main/AndroidManifest.xml", "w") as f:
+            f.write('''<?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -129,11 +132,11 @@ jobs:
                 </activity>
             </application>
         </manifest>
-        EOF
+        ''')
 
-        # 5. UI Layout
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
-        <?xml version="1.0" encoding="utf-8"?>
+        # 5. activity_main.xml
+        with open("app/src/main/res/layout/activity_main.xml", "w") as f:
+            f.write('''<?xml version="1.0" encoding="utf-8"?>
         <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -144,11 +147,11 @@ jobs:
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
         </FrameLayout>
-        EOF
+        ''')
 
-        # 6. Ultra-Professional VS Code / AndroidIDE Style Interface
-        cat << 'EOF' > app/src/main/assets/editor/index.html
-        <!DOCTYPE html>
+        # 6. index.html (VS Code & AndroidIDE Studio)
+        with open("app/src/main/assets/editor/index.html", "w") as f:
+            f.write('''<!DOCTYPE html>
         <html lang="en">
         <head>
           <meta charset="UTF-8">
@@ -182,12 +185,10 @@ jobs:
             </div>
 
             <div class="flex items-center space-x-1.5">
-              <!-- New Project Button -->
               <button onclick="openNewProjectModal()" class="flex items-center space-x-1 px-2 py-1 bg-[#2D2D2D] hover:bg-[#3C3C3C] text-xs text-gray-200 rounded transition">
                 <i data-lucide="folder-plus" class="w-3.5 h-3.5 text-amber-400"></i>
                 <span class="text-[11px] font-semibold">New</span>
               </button>
-              <!-- Run / Build Button -->
               <button onclick="triggerBuildProcess()" class="flex items-center space-x-1 px-3 py-1 bg-[#388A34] hover:bg-[#2E702B] text-white text-xs font-bold rounded shadow transition">
                 <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
                 <span>Build APK</span>
@@ -195,40 +196,30 @@ jobs:
             </div>
           </header>
 
-          <!-- Middle Workspace (Explorer Drawer + Editor Area) -->
+          <!-- Middle Workspace -->
           <div class="flex-1 flex overflow-hidden relative">
 
-            <!-- Collapsible File Explorer Sidebar -->
+            <!-- Explorer Sidebar -->
             <div id="explorerSidebar" class="absolute inset-y-0 left-0 w-64 sidebar-bg border-r border-[#1E1E1E] z-20 flex flex-col transform -translate-x-full transition-transform duration-200 shadow-2xl">
               <div class="p-2.5 bg-[#202020] text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-[#2D2D2D]">
                 <span>Project Explorer</span>
                 <button onclick="toggleExplorer()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
               </div>
-
-              <div id="fileTree" class="flex-1 overflow-y-auto p-2 text-xs font-mono space-y-1">
-                <!-- File Tree Nodes -->
-              </div>
+              <div id="fileTree" class="flex-1 overflow-y-auto p-2 text-xs font-mono space-y-1"></div>
             </div>
 
             <!-- Main Code Editor Surface -->
             <div class="flex-1 flex flex-col editor-bg overflow-hidden">
-              
-              <!-- Tabs Bar -->
-              <div id="tabsBar" class="h-9 bg-[#252526] border-b border-[#1E1E1E] flex items-center overflow-x-auto select-none shrink-0">
-                <!-- Active Tabs -->
-              </div>
+              <div id="tabsBar" class="h-9 bg-[#252526] border-b border-[#1E1E1E] flex items-center overflow-x-auto select-none shrink-0"></div>
 
-              <!-- Code Input Canvas -->
               <div class="flex-1 relative overflow-hidden flex">
-                <!-- Line Numbers -->
                 <div id="lineNumbers" class="w-10 bg-[#1E1E1E] text-right pr-2 pt-3 text-xs font-mono text-gray-600 select-none border-r border-[#2D2D2D] leading-5 shrink-0">
                   1<br>2<br>3<br>4<br>5
                 </div>
-                <!-- Textarea -->
                 <textarea id="codeEditor" spellcheck="false" class="flex-1 bg-transparent text-[#D4D4D4] p-3 pt-3 text-xs font-mono outline-none resize-none leading-5 whitespace-pre overflow-auto" oninput="updateLineNumbers()"></textarea>
               </div>
 
-              <!-- Programming Quick Symbol Bar (Directly Above Mobile Keyboard) -->
+              <!-- Symbol Bar -->
               <div class="h-9 bg-[#252526] border-t border-[#333333] flex items-center px-1 space-x-1 overflow-x-auto shrink-0">
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('\t')">Tab</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('{')">{</button>
@@ -237,19 +228,15 @@ jobs:
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol(')')">)</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol(';')">;</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('=')">=</button>
-                <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('&quot;')">&quot;</button>
-                <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('&lt;')">&lt;</button>
-                <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('&gt;')">&gt;</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('.')">.</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('+')">+</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('-')">-</button>
                 <button class="symbol-btn px-2.5 py-1" onclick="insertSymbol('/')">/</button>
               </div>
-
             </div>
           </div>
 
-          <!-- Bottom Build Terminal Panel (Collapsible) -->
+          <!-- Bottom Build Terminal Panel -->
           <div id="buildConsole" class="h-44 bg-[#141414] border-t border-[#2D2D2D] flex flex-col z-20 hidden">
             <div class="h-7 bg-[#202020] px-3 flex items-center justify-between text-[11px] font-mono text-gray-400 border-b border-[#282828]">
               <div class="flex items-center space-x-2">
@@ -264,7 +251,7 @@ jobs:
             </div>
           </div>
 
-          <!-- New Project Template Modal -->
+          <!-- New Project Modal -->
           <div id="projectModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="w-full max-w-sm bg-[#252526] border border-[#3C3C3C] rounded-xl p-4 shadow-2xl space-y-3">
               <div class="flex items-center justify-between border-b border-[#333] pb-2">
@@ -273,7 +260,6 @@ jobs:
               </div>
 
               <div class="space-y-2">
-                <!-- Template 1: Android Native App -->
                 <button onclick="loadTemplate('android')" class="w-full text-left p-2.5 rounded-lg bg-[#1E1E1E] hover:bg-[#333] border border-[#333] flex items-center space-x-3 transition">
                   <div class="w-8 h-8 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">APK</div>
                   <div>
@@ -282,7 +268,6 @@ jobs:
                   </div>
                 </button>
 
-                <!-- Template 2: 2D/3D Game (LibGDX) -->
                 <button onclick="loadTemplate('game')" class="w-full text-left p-2.5 rounded-lg bg-[#1E1E1E] hover:bg-[#333] border border-[#333] flex items-center space-x-3 transition">
                   <div class="w-8 h-8 rounded bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xs">3D</div>
                   <div>
@@ -291,7 +276,6 @@ jobs:
                   </div>
                 </button>
 
-                <!-- Template 3: C/C++ Native Project -->
                 <button onclick="loadTemplate('cpp')" class="w-full text-left p-2.5 rounded-lg bg-[#1E1E1E] hover:bg-[#333] border border-[#333] flex items-center space-x-3 transition">
                   <div class="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">C++</div>
                   <div>
@@ -309,55 +293,54 @@ jobs:
             let projectFiles = {};
             let activeFile = "MainActivity.java";
 
-            // Default Android App Project
             function initDefaultProject() {
               projectFiles = {
                 "MainActivity.java": `package com.nova.myapp;
 
-import android.app.Activity;
-import android.os.Bundle;
-import android.widget.TextView;
+        import android.app.Activity;
+        import android.os.Bundle;
+        import android.widget.TextView;
 
-public class MainActivity extends Activity {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        
-        TextView tv = findViewById(R.id.tvTitle);
-        tv.setText("Engineered with Nova Dev Studio!");
-    }
-}`,
+        public class MainActivity extends Activity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_main);
+                
+                TextView tv = findViewById(R.id.tvTitle);
+                tv.setText("Engineered with Nova Dev Studio!");
+            }
+        }`,
                 "activity_main.xml": `<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="center"
-    android:background="#121212"
-    android:orientation="vertical">
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:background="#121212"
+            android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        android:text="Nova Dev Studio" />
-</LinearLayout>`,
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:text="Nova Dev Studio" />
+        </LinearLayout>`,
                 "AndroidManifest.xml": `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.nova.myapp">
-    <application
-        android:label="My Nova App"
-        android:icon="@android:drawable/sym_def_app_icon">
-        <activity android:name=".MainActivity" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>`
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.nova.myapp">
+            <application
+                android:label="My Nova App"
+                android:icon="@android:drawable/sym_def_app_icon">
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>`
               };
               renderExplorer();
               openFile("MainActivity.java");
@@ -406,7 +389,7 @@ public class MainActivity extends Activity {
 
             function updateLineNumbers() {
               const editor = document.getElementById('codeEditor');
-              const lines = editor.value.split('\n').length;
+              const lines = editor.value.split('\\n').length;
               let numStr = "";
               for (let i = 1; i <= Math.max(lines, 10); i++) {
                 numStr += i + "<br>";
@@ -424,21 +407,10 @@ public class MainActivity extends Activity {
               updateLineNumbers();
             }
 
-            function toggleExplorer() {
-              document.getElementById('explorerSidebar').classList.toggle('-translate-x-full');
-            }
-
-            function toggleConsole() {
-              document.getElementById('buildConsole').classList.toggle('hidden');
-            }
-
-            function openNewProjectModal() {
-              document.getElementById('projectModal').classList.remove('hidden');
-            }
-
-            function closeNewProjectModal() {
-              document.getElementById('projectModal').classList.add('hidden');
-            }
+            function toggleExplorer() { document.getElementById('explorerSidebar').classList.toggle('-translate-x-full'); }
+            function toggleConsole() { document.getElementById('buildConsole').classList.toggle('hidden'); }
+            function openNewProjectModal() { document.getElementById('projectModal').classList.remove('hidden'); }
+            function closeNewProjectModal() { document.getElementById('projectModal').classList.add('hidden'); }
 
             function loadTemplate(type) {
               closeNewProjectModal();
@@ -450,49 +422,48 @@ public class MainActivity extends Activity {
                 projectFiles = {
                   "My3DGame.java": `package com.nova.game;
 
-import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.g3d.ModelBatch;
+        import com.badlogic.gdx.ApplicationAdapter;
+        import com.badlogic.gdx.Gdx;
+        import com.badlogic.gdx.graphics.GL20;
+        import com.badlogic.gdx.graphics.PerspectiveCamera;
+        import com.badlogic.gdx.graphics.g3d.ModelBatch;
 
-public class My3DGame extends ApplicationAdapter {
-    private PerspectiveCamera cam;
-    private ModelBatch modelBatch;
+        public class My3DGame extends ApplicationAdapter {
+            private PerspectiveCamera cam;
+            private ModelBatch modelBatch;
 
-    @Override
-    public void create() {
-        modelBatch = new ModelBatch();
-        cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        cam.position.set(10f, 10f, 10f);
-        cam.lookAt(0, 0, 0);
-        cam.near = 1f;
-        cam.far = 300f;
-        cam.update();
-    }
+            @Override
+            public void create() {
+                modelBatch = new ModelBatch();
+                cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                cam.position.set(10f, 10f, 10f);
+                cam.lookAt(0, 0, 0);
+                cam.near = 1f;
+                cam.far = 300f;
+                cam.update();
+            }
 
-    @Override
-    public void render() {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-        // 3D Game Render Loop Active
-    }
-}`,
+            @Override
+            public void render() {
+                Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+            }
+        }`,
                   "GameLauncher.java": `package com.nova.game;
 
-import android.os.Bundle;
-import com.badlogic.gdx.backends.android.AndroidApplication;
-import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
+        import android.os.Bundle;
+        import com.badlogic.gdx.backends.android.AndroidApplication;
+        import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 
-public class GameLauncher extends AndroidApplication {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-        config.useGL30 = true;
-        initialize(new My3DGame(), config);
-    }
-}`
+        public class GameLauncher extends AndroidApplication {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
+                config.useGL30 = true;
+                initialize(new My3DGame(), config);
+            }
+        }`
                 };
                 renderExplorer();
                 openFile("My3DGame.java");
@@ -501,10 +472,10 @@ public class GameLauncher extends AndroidApplication {
                 projectFiles = {
                   "main.cpp": `#include <iostream>
 
-int main() {
-    std::cout << "Nova Dev Studio C++ Clang Pipeline Active!" << std::endl;
-    return 0;
-}`
+        int main() {
+            std::cout << "Nova Dev Studio C++ Clang Pipeline Active!" << std::endl;
+            return 0;
+        }`
                 };
                 renderExplorer();
                 openFile("main.cpp");
@@ -532,16 +503,15 @@ int main() {
               }, 3000);
             }
 
-            // Start Default App
             initDefaultProject();
           </script>
         </body>
         </html>
-        EOF
+        ''')
 
         # 7. MainActivity.java
-        cat << 'EOF' > app/src/main/java/com/novastudio24/devstudio/MainActivity.java
-        package com.novastudio24.devstudio;
+        with open("app/src/main/java/com/novastudio24/devstudio/MainActivity.java", "w") as f:
+            f.write('''package com.novastudio24.devstudio;
 
         import android.app.Activity;
         import android.os.Bundle;
@@ -577,7 +547,8 @@ int main() {
                 }
             }
         }
-        EOF
+        ''')
+        PYEOF
 
     - name: Build Android APK
       run: |
@@ -586,14 +557,14 @@ int main() {
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Nova-Dev-Studio-v1.0.0
+        name: Nova-Dev-Studio-v1.0.1
         path: app/build/outputs/apk/debug/app-debug.apk
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/heads/main')
       with:
-        tag_name: v1.0.0
-        name: "Nova Dev Studio v1.0.0 (Professional IDE)"
-        body: "Professional Mobile App & 3D Game IDE by Nova Studio 24."
+        tag_name: v1.0.1
+        name: "Nova Dev Studio v1.0.1"
+        body: "Syntax Error Fixed Professional Mobile IDE by Nova Studio 24."
         files: app/build/outputs/apk/debug/app-debug.apk
